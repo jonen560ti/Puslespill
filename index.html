@@ -1,0 +1,259 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Puslespill</title>
+    <style>
+        h2 {color:blue;}
+
+        div {
+            color : red;
+            background-color:deepskyblue;
+            padding: 10px;
+            margin: 10px;
+            border: solid green 2px;
+            width: 30px;
+            height: 30px;
+            float: left;
+            text-align: center; 
+            vertical-align: middle;
+            line-height: 30px;
+            font-size: large;
+        }
+
+        div.FirstLine {
+            clear: left;
+        }
+
+        div.Help {
+            color: black;
+            background-color: lightgrey;
+            padding: 0px;
+            margin: 0px;
+            border: 0px;
+            width: 90px;
+            height: 30px;
+            float: left;
+            text-align: center;
+            vertical-align: middle;
+            line-height: 30px;
+            font-size: large;
+        }
+
+    </style>
+</head>
+<body>
+    <h2>Puslespill</h2>
+
+    <div id="r1k1" onclick="Shuffle(this,1,1)">4</div>
+    <div id="r1k2" onclick="Shuffle(this,1,2)">1</div>
+    <div id="r1k3" onclick="Shuffle(this,1,3)">3</div>
+
+    <div id="r2k1" class="FirstLine" onclick="Shuffle(this,2,1)">6</div>
+    <div id="r2k2" onclick="Shuffle(this,2,2)">8</div>
+    <div id="r2k3" onclick="Shuffle(this,2,3)">5</div>
+
+    <div id="r3k1" class="FirstLine" onclick="Shuffle(this,3,1)">7</div>
+    <div id="r3k2" onclick="Shuffle(this,3,2)"></div>
+    <div id="r3k3" onclick="Shuffle(this,3,3)">2</div>
+    <h1 id="Timer" class="Stats">Tid igjen: 60 </h1>
+    <h1 id="MoveCount" class="Stats">Trekk brukt: 0 </h1>
+    <div id="Help" class="Help" onclick="GetHelp()">Hjelp tekst</div>
+
+    <script>
+        var BlankSpace = {row:3,col:2};
+        var BlankSpaceElement = document.getElementById('r3k2');
+        var LegalMoves = [];
+        var MovesUsed = 0;
+        var TimeLeft = 300;
+        var GameStarted = false;
+        var Timer;
+        var GameComplete = false;
+        var IllegalMove;
+
+        var Spaces = ["r1k1","r1k2","r1k3",
+                      "r2k1","r2k2","r2k3",
+                      "r3k1","r3k2","r3k3"];
+
+
+        //runs when the page is loaded
+        window.onload = function exampleFunction() {
+        
+        //Set the time text to "TimeLeft" variable
+        document.getElementById('Timer').innerHTML = 'Tid igjen: ' + TimeLeft;
+
+        //Check Legal moves from the starting position 
+        RefreshLegalMoves();
+        }
+
+
+        //Runs everytime a space is clicked
+        function Shuffle(tagElement, row, col) {
+        
+
+        //Check if the move is Illegal by checking if it's NOT listed in
+        //the array of legal moves
+        IllegalMove = (!LegalMoves.includes(tagElement.id));
+        //IllegalMove = false;
+        
+        //If the move is illegal or game is complete, execution stops
+        if (IllegalMove || GameComplete) {
+        return;
+        }
+
+        
+        
+        // reset the colors of all spaces 
+        SetSpaceColors("Deepskyblue");
+
+        //Define the row and column number for the blank space's current position
+        BlankSpace.row = row
+        BlankSpace.col = col
+
+        //Check every possible move from the current position and 
+        //store them in an array, also highlight the spaces
+        //that can be moved to with orange color
+        RefreshLegalMoves();
+
+
+        //Swap the blank text and the chosen tagElement to simlate
+        //the effect of moving tiles
+        BlankSpaceElement.innerHTML = tagElement.innerHTML;
+        BlankSpaceElement = tagElement;
+        tagElement.innerHTML = '';
+
+        //Increment the # of moves used and update the visible stats
+        MovesUsed++; 
+        document.getElementById('MoveCount').innerHTML = 'Trekk brukt: ' + MovesUsed;
+        
+        //If the game is not yet started, start the timer and then
+        //set GameStarted to true to avoid triggering again while 
+        //game is active
+        if(!GameStarted) {
+        GameStarted = true;
+        Timer = setInterval(RunTimer, 1000);
+        }
+        
+        GameComplete = CheckSolution();
+
+        }
+
+
+
+        //First resets the "LegalMoves" array, then runs the 
+        //"ToggleAvailable" function on all new moveable spaces
+        function RefreshLegalMoves() {
+
+        LegalMoves = [];
+
+        ToggleAvailable(BlankSpace.row + 1, BlankSpace.col);
+
+        ToggleAvailable(BlankSpace.row - 1, BlankSpace.col);
+
+        ToggleAvailable(BlankSpace.row, BlankSpace.col + 1);
+
+        ToggleAvailable(BlankSpace.row, BlankSpace.col - 1);
+
+        }
+
+
+        //Toggles a space as a "moveable" space based on row and column number
+        function ToggleAvailable(row,col) {
+
+        //Setup the HTML id name for the row and column
+        var Space = 'r'+row+'k'+col;
+
+        //Push the ID name to the "LegalMoves" array. The player can only
+        //move to a space that is in this array
+        LegalMoves.push(Space);
+
+        //Before highlighting the space with a new color, check if it exists
+        //this is needed as the play area might not be big enough to cover
+        //moves in all 4 directions
+        let ElementExists = document.getElementById(Space);
+        if (typeof(ElementExists) != 'undefined' && ElementExists != null)
+        {
+        //If the space exists, give it a different BG colour
+        document.getElementById(Space).style.background = "lightgreen";
+        }
+        }
+
+
+        //Runs every second, handles the timer
+        function RunTimer() {
+
+        //if(GameComplete) {
+        //return;
+        //}
+
+        //Reduce TimeLeft be 1 second and updates the displayed text
+        TimeLeft--;
+        document.getElementById('Timer').innerHTML = 'Tid igjen: ' + TimeLeft;
+
+        //If TimeLeft is less than or equal to 0, end the game
+        if(TimeLeft <= 0) {
+        SetSpaceColors('Red');
+        alert('Game over');
+        clearInterval(Timer);
+        GameComplete = true;
+        }
+        
+        
+        }
+
+
+
+        //Checks to see if the game is completed
+        function CheckSolution() {
+        
+        //Set up an integer to control the forloop
+        var i;
+
+        //loop from 1 to 8, the reason we don't count 9 is because this will
+        //always be a blank space if puzzle is solved correctly so we don't
+        //need to perform a check on it
+        for (i = 1; i < 9; i++) {
+
+        //Get the space that should hold this number("i") from the array of Spaces
+        let SpaceName = Spaces[i - 1];
+
+        //Check what number resides on this space
+        let SpaceNumber = document.getElementById(SpaceName).innerHTML; 
+        
+        //If the number on the space doesn't match the correct order, the puzzle
+        //is still not solved. return false and end the loop early
+        if (i != SpaceNumber) {
+        return false;
+                }
+            }
+
+        //If all numbers match the array order, return true,
+        //This sets "GameComplete" to true and the game is complete        
+        clearInterval(Timer);
+        SetSpaceColors("lightgreen");
+        alert('gratulerer, du løste spillet på ' + MovesUsed + ' trekk');
+        return true; 
+        }
+
+        //Gives the player instructions about the game
+        function GetHelp() {
+        alert("de grønne rutene viser hvor du kan flytte. tiden starter når du har gjort det første trekket. Refresh siden hvis du vil starte på nytt");
+        }
+
+
+        //Sets all space colors to their default color
+        function SetSpaceColors(Color){
+
+        //Nested loop to set color on every column on every row
+        for (r = 1; r < 4; r++) {
+
+        for (c = 1; c < 4; c++) {
+        document.getElementById("r"+r+"k"+c).style.background = Color;
+        }
+        }
+
+        }
+    </script>
+</body>
+</html>
